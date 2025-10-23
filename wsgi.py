@@ -162,44 +162,46 @@ def staff_create():
 def review_hours_cli():
     staff_id = int(input("Enter staff ID: "))
     password = input("Enter your password: ")
-
+    
     staff = Staff.query.get(staff_id)
     if not staff or not staff.check_password(password):
         print("Invalid staff credentials.")
         return
-
+        
     student_id = int(input("Enter student ID to review: "))
     student = Student.query.get(student_id)
     if not student:
         print("Invalid student ID.")
         return
-
+        
     pending = HoursCompleted.query.filter_by(student_id=student.id, status="pending").all()
     if not pending:
         print(f"No pending requests for {student.first_name} {student.last_name}.")
         return
-
+        
     print(f"\nPending requests for {student.first_name} {student.last_name}:")
-    for record in pending:
-        print(f"[Request ID: {record.id}] {record.hours}h - {record.activity}")
-
-    hour_request_id = int(input("Enter the Hour Request ID to review: "))
-    record = HoursCompleted.query.filter_by(id=hour_request_id, student_id=student.id, status="pending").first()
-
-    if not record:
-        print("Invalid Hour Request ID.")
-        return
-
+    
+    for index, record in enumerate(pending):
+        print(f"[Index: {index}] {record.hours}h - {record.activity}")
+    hour_request_id = int(input("Enter the request index to review: "))
     action = input("Do you want to confirm or deny? (c/d): ").lower()
+    
     if action == "c":
-        record.status = "confirmed"
-        record.staff_id = staff.id
-        db.session.commit()
+        record = review_hours(staff_id, student_id, hour_request_id, True)
+        
+        if not record:
+            print("Invalid request index.")
+            return
+            
         print(f"Confirmed {record.hours}h - {record.activity} for {student.first_name} {student.last_name}.")
+        
     elif action == "d":
-        record.status = "denied"
-        record.staff_id = staff.id
-        db.session.commit()
+        record = review_hours(staff_id, student_id, hour_request_id, False)
+        
+        if not record:
+            print("Invalid request index.")
+            return
+
         print(f"Denied {record.hours}h - {record.activity} for {student.first_name} {student.last_name}.")
     else:
         print("Invalid action. Please enter 'c' or 'd'.")
